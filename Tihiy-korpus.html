@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Тихий корпус</title>
+<style>
+  :root{
+    --bg:#0e1721;
+    --panel:#162330;
+    --panel2:#1d2c3b;
+    --line:#2b3d4f;
+    --text:#e9f0f6;
+    --muted:#9fb3c4;
+    --ok:#7fd1b9;
+    --bad:#e5a07c;
+    --accent:#8fc7e8;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    min-height:100vh;
+    background:radial-gradient(900px 500px at 50% -10%,#1c3243 0%,var(--bg) 60%);
+    color:var(--text);
+    font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    padding:18px 16px 34px;
+  }
+  .wrap{max-width:640px;margin:0 auto}
+  header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:18px}
+  h1{font-size:24px;margin:0;letter-spacing:.5px}
+  .sub{color:var(--muted);font-size:14px;margin-top:2px}
+  .info{
+    background:transparent;color:var(--muted);border:1px solid var(--line);
+    border-radius:50%;width:34px;height:34px;font-size:17px;cursor:pointer;flex:none
+  }
+  .card{
+    background:var(--panel);border:1px solid var(--line);border-radius:18px;
+    padding:18px;box-shadow:0 10px 30px rgba(0,0,0,.25)
+  }
+  .progress{display:flex;gap:6px;margin-bottom:16px}
+  .dot{height:5px;flex:1;border-radius:5px;background:var(--line)}
+  .dot.done{background:var(--ok)}
+  .tag{
+    display:inline-block;font-size:12px;padding:3px 10px;border-radius:20px;
+    background:var(--panel2);color:var(--accent);border:1px solid var(--line);margin-bottom:10px
+  }
+  .person{display:flex;gap:14px;align-items:center;margin-bottom:12px}
+  .avatar{
+    width:58px;height:58px;border-radius:16px;background:var(--panel2);
+    display:grid;place-items:center;font-size:32px;flex:none;border:1px solid var(--line)
+  }
+  .person h2{font-size:19px;margin:0}
+  .person .meta{color:var(--muted);font-size:13px}
+  .story{color:#d7e3ec;margin:4px 0 18px}
+  .actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+  button.act{
+    text-align:left;background:var(--panel2);color:var(--text);
+    border:1px solid var(--line);border-radius:12px;padding:12px 13px;
+    font:inherit;font-size:14px;cursor:pointer;transition:.15s
+  }
+  button.act:hover{border-color:var(--accent);transform:translateY(-1px)}
+  button.act:active{transform:none}
+  .feedback{
+    display:none;margin-top:16px;padding:13px 14px;border-radius:12px;
+    border:1px solid var(--line);background:var(--panel2)
+  }
+  .feedback.show{display:block}
+  .feedback.good{border-color:var(--ok)}
+  .feedback.bad{border-color:var(--bad)}
+  .feedback b{display:block;margin-bottom:3px}
+  .feedback.good b{color:var(--ok)}
+  .feedback.bad b{color:var(--bad)}
+  .next{
+    display:none;width:100%;margin-top:14px;padding:13px;border:0;border-radius:12px;
+    background:var(--ok);color:#0d1a17;font:inherit;font-weight:700;cursor:pointer
+  }
+  .next.show{display:block}
+  .score{font-size:34px;font-weight:800;color:var(--ok);margin:6px 0}
+  .hidden{display:none}
+  .note{color:var(--muted);font-size:12px;margin-top:18px;text-align:center}
+  .modal{
+    position:fixed;inset:0;background:rgba(5,10,15,.75);display:none;
+    align-items:center;justify-content:center;padding:20px;z-index:5
+  }
+  .modal.show{display:flex}
+  .modal .card{max-width:420px}
+  .modal h3{margin:0 0 8px;font-size:18px}
+  .modal p{color:var(--muted);font-size:14px;margin:8px 0}
+  .close{margin-top:10px;background:var(--panel2);color:var(--text);border:1px solid var(--line);
+    border-radius:10px;padding:9px 14px;cursor:pointer;font:inherit}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Тихий корпус</h1>
+      <div class="sub">Смена в отделении · игра о внимании</div>
+    </div>
+    <button class="info" id="infoBtn" title="О игре">i</button>
+  </header>
+
+  <div class="card" id="game">
+    <div class="progress" id="progress"></div>
+    <div id="stage"></div>
+  </div>
+
+  <div class="note">Художественная игра. Не медицинская инструкция.</div>
+</div>
+
+<div class="modal" id="modal">
+  <div class="card">
+    <h3>О игре</h3>
+    <p>Это небольшая история о том, как важно услышать человека. Здесь нет «правильных диагнозов» и способов «починить» кого-то — есть только выбор, который говорит о вашем отношении.</p>
+    <p>Если вам или близким тяжело — обратитесь к врачу, психологу или в местную службу психологической помощи. Просить о помощи — нормально.</p>
+    <button class="close" id="closeBtn">Понятно</button>
+  </div>
+</div>
+
+<script>
+const patients = [
+  {
+    avatar:"👩", name:"Анна", age:"32 года", state:"тревога",
+    story:"Сидит у окна и теребит рукав. Через час — разговор с комиссией по выписке. Ей страшно, что её не поймут.",
+    right:"Поговорить спокойно",
+    good:"Вы сели рядом и дали ей договорить. Тревога отступила — её услышали.",
+    bad:"Совет «не волноваться» только усилил тревогу. Иногда достаточно просто быть рядом."
+  },
+  {
+    avatar:"🧑", name:"Илья", age:"19 лет", state:"апатия",
+    story:"Лечится давно. Смотрит в пол, на вопросы отвечает односложно. Ему кажется, что ничего уже не изменится.",
+    right:"Предложить прогулку",
+    good:"Вы предложили пройтись до двора. Он не сразу, но согласился — маленький шаг всё-таки шаг.",
+    bad:"Настойчивые уговоры «взять себя в руки» закрыли его ещё больше."
+  },
+  {
+    avatar:"🧔", name:"Марк", age:"45 лет", state:"раздражительность",
+    story:"Утром поссорился по телефону с родственником. Сейчас любой вопрос вызывает резкую реакцию. Ему нужно пространство.",
+    right:"Оставить в покое",
+    good:"Вы не стали спорить и дали ему время. Через полчаса он сам вышел из палаты.",
+    bad:"Попытка сразу «разобраться» закончилась ссорой. Иногда лучшая помощь — не вмешиваться."
+  },
+  {
+    avatar:"👵", name:"Лида", age:"67 лет", state:"спутанность",
+    story:"Ищет мужа, которого нет уже много лет. Сегодня ей особенно одиноко и тревожно.",
+    right:"Позвонить родным",
+    good:"Вы помогли набрать номер дочери. Голос знакомого человека успокоил её.",
+    bad:"Спор по фактам («его уже нет») только усилил растерянность. Важен не спор, а безопасность."
+  },
+  {
+    avatar:"🧑‍🦱", name:"Сергей", age:"28 лет", state:"назначение врача",
+    story:"Врач оставил назначение на сегодня. Сергей волнуется перед приёмом и просит объяснить, что будет.",
+    right:"Дать препарат по назначению",
+    good:"Вы спокойно объяснили и выполнили назначение. Он вздохнул свободнее.",
+    bad:"Отложить назначение без причины — значит оставить его в неопределённости. Нужно было уточнить у врача."
+  }
+];
+
+const actions = ["Поговорить спокойно","Предложить прогулку","Оставить в покое","Позвонить родным","Дать препарат по назначению"];
+
+let idx = 0, score = 0, locked = false;
+
+const stage = document.getElementById("stage");
+const progress = document.getElementById("progress");
+const modal = document.getElementById("modal");
+
+function renderProgress(){
+  progress.innerHTML = patients.map((_,i)=>`<div class="dot ${i<idx?"done":""}"></div>`).join("");
+}
+
+function renderPatient(){
+  locked = false;
+  const p = patients[idx];
+  stage.innerHTML = `
+    <div class="tag">Пациент ${idx+1} из ${patients.length}</div>
+    <div class="person">
+      <div class="avatar">${p.avatar}</div>
+      <div><h2>${p.name}</h2><div class="meta">${p.age} · ${p.state}</div></div>
+    </div>
+    <p class="story">${p.story}</p>
+    <div class="actions">
+      ${actions.map(a=>`<button class="act" data-act="${a}">${a}</button>`).join("")}
+    </div>
+    <div class="feedback" id="fb"></div>
+    <button class="next" id="next">Далее →</button>`;
+
+  stage.querySelectorAll(".act").forEach(btn=>{
+    btn.onclick = ()=>choose(btn.dataset.act);
+  });
+  document.getElementById("next").onclick = ()=>{
+    idx++;
+    idx < patients.length ? renderPatient() : renderEnd();
+  };
+  renderProgress();
+}
+
+function choose(act){
+  if(locked) return;
+  locked = true;
+  const p = patients[idx];
+  const good = act === p.right;
+  if(good) score++;
+  const fb = document.getElementById("fb");
+  fb.className = "feedback show " + (good ? "good" : "bad");
+  fb.innerHTML = `<b>${good ? "Верно" : "Не совсем"}</b>${good ? p.good : p.bad}`;
+  stage.querySelectorAll(".act").forEach(b=>b.disabled=true);
+  document.getElementById("next").classList.add("show");
+}
+
+function renderEnd(){
+  progress.innerHTML = patients.map(()=>`<div class="dot done"></div>`).join("");
+  let title, text;
+  if(score === 5){
+    title = "Смена пройдена";
+    text = "Вы нашли подход к каждому. Доверие — не награда за правильные ответы, а результат внимания.";
+  } else if(score >= 3){
+    title = "Неплохая смена";
+    text = "Где-то вы попали, где-то нет. Это нормально: в такой работе учатся всей жизнью.";
+  } else {
+    title = "Попробуйте ещё раз";
+    text = "Здесь важнее не «поступить по инструкции», а понять, чего человеку сейчас не хватает.";
+  }
+  stage.innerHTML = `
+    <div class="tag">Итог смены</div>
+    <h2 style="margin:0">${title}</h2>
+    <div class="score">${score} / ${patients.length}</div>
+    <p class="story">${text}</p>
+    <button class="next show" id="again">Начать заново</button>`;
+  document.getElementById("again").onclick = ()=>{ idx=0; score=0; renderPatient(); };
+}
+
+document.getElementById("infoBtn").onclick = ()=>modal.classList.add("show");
+document.getElementById("closeBtn").onclick = ()=>modal.classList.remove("show");
+modal.onclick = e=>{ if(e.target === modal) modal.classList.remove("show"); };
+
+renderPatient();
+</script>
+</body>
+</html>
